@@ -18,6 +18,10 @@ class Product:
         if self.price < 0:
             raise DomainError('Precio no puede ser negativo')
 
+    @classmethod
+    def create(cls, tenant_id: str, name: str, sku: str, price: float, stock: int, category: str):
+        return cls(tenant_id=tenant_id, name=name, sku=sku, price=price, stock=stock, category=category)
+
     def update_stock(self, new_stock: int):
         if new_stock < 0:
             raise DomainError('Stock no puede ser negativo')
