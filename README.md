@@ -1,3 +1,4 @@
+```
 # inventory-multitenant-fastapi
 
 REST API for multi-tenant inventory management with stock tracking, built with FastAPI and deployed on Google Cloud Run.
@@ -8,16 +9,16 @@ Inventory management system with full multi-tenant isolation. Each tenant manage
 
 ## Live Demo
 
-Swagger UI: https://maiie-system-247946064488.us-central1.run.app/docs
+Swagger UI: https://inventory-multitenant-api-247946064488.us-central1.run.app/docs
 
 ## Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | /products | Create new product for tenant |
-| GET | /products | List all products by tenant |
-| PUT | /products/{id}/stock | Update product stock in/out |
-| GET | /reports/inventory | Low stock inventory report |
+| POST | /api/v1/products | Create new product for tenant |
+| GET | /api/v1/products | List all products by tenant |
+| PUT | /api/v1/products/{id}/stock | Update product stock |
+| GET | /api/v1/reports/inventory | Low stock inventory report |
 
 ## Stack
 
@@ -30,13 +31,19 @@ Swagger UI: https://maiie-system-247946064488.us-central1.run.app/docs
 ## Usage
 
 Create a product:
-```
-curl -X POST https://maiie-system-247946064488.us-central1.run.app/products -H "Content-Type: application/json" -H "X-Tenant-ID: tenant-1" -d '{"name": "Product A", "sku": "SKU001", "price": 10.0, "stock": 100, "category": "electronics"}'
+
+```bash
+curl -X POST https://inventory-multitenant-api-247946064488.us-central1.run.app/api/v1/products \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: tenant-1" \
+  -d '{"name": "Laptop", "sku": "LAP001", "price": 999.99, "stock": 10, "category": "electronics"}'
 ```
 
 Get inventory report:
-```
-curl https://maiie-system-247946064488.us-central1.run.app/reports/inventory -H "X-Tenant-ID: tenant-1"
+
+```bash
+curl https://inventory-multitenant-api-247946064488.us-central1.run.app/api/v1/reports/inventory \
+  -H "X-Tenant-ID: tenant-1"
 ```
 
 ---
