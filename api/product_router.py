@@ -1,91 +1,25 @@
-"""
-Modulo: product_router
-Capa: API
-
-Descripcion:
-Router de FastAPI para gestionar las operaciones relacionadas con productos,
-específicamente la actualización de stock.
-
-Responsabilidades:
-- Exponer el endpoint PUT /products/{id}/stock.
-- Validar los datos de entrada de las solicitudes HTTP usando Pydantic.
-- Orquestar la ejecución del caso de uso UpdateStock.
-- Traducir las excepciones del dominio a respuestas HTTP apropiadas.
-- Formatear la respuesta HTTP en caso de éxito.
-
-Version: 1.0.0
-"""
-
+# File: api/product_router.py
 import logging
-from typing import TypeAlias
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import UUID
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
-
-from core.exceptions import DomainError, ProductNotFound
+from core.exceptions import DomainError, ProductNotFound, TenantNotFound
 from core.use_cases.update_stock import UpdateStock
-from infrastructure.product_repository import ProductRepositorySingleton
+from core.use_cases.create_product import CreateProduct
+from core.use_cases.get_inventory_report import GetInventoryReport
+from infrastructure.in_memory_product_repository import InMemoryProductRepository
+from infrastructure.in_memory_tenant_repository import InMemoryTenantRepository
 
 logger = logging.getLogger(__name__)
 
-ProductId: TypeAlias = str | int
-StockLevel: TypeAlias = int
+router = APIRouter(prefix='/products', tags=['Products'])
 
-class UpdateStockRequestModelModel(BaseModel):
-    """Modelo de datos para la solicitud de actualización de stock."""
-    stock_level: StockLevel = Field(..., ge=0, description="Nuevo nivel de stock para el producto. No puede ser negativo.")
+class UpdateStockRequestModel(BaseModel):
+    stock_level: int = Field(..., ge=0)
 
-class UpdateStockResponseModelModel(BaseModel):
-    """Modelo de datos para la respuesta de actualización de stock."""
-    product_id: ProductId
-    stock_level: StockLevel
-
-router = APIRouter(
-    prefix="/products",
-    tags=["Products"],
-    responses={404: {"description": "Not found"}}
-)
-
-def get_update_stock_use_case() -> UpdateStock:
-    """
-    Crea y devuelve una instancia del caso de uso para actualizar stock,
-    inyectando el repositorio de productos como dependencia.
-    Este enfoque facilita las pruebas al permitir el mockeo de dependencias.
-    """
-    product_repository = ProductRepositorySingleton.get_instance()
-    return UpdateStock(product_repository=product_repository)
-
-@router.put(
-    "/{product_id}/stock",
-    response_model=UpdateStockResponseModelModel,
-    status_code=status.HTTP_200_OK,
-    summary="Actualizar stock de un producto",
-    description="Actualiza el nivel de stock de un producto específico por su ID."
-)
-def update_product_stock(
-    product_id: ProductId,
-    request: UpdateStockRequestModelModel,
-    use_case: UpdateStock = Depends(get_update_stock_use_case)
-) -> UpdateStockResponseModelModel:
-    try:
-        logger.info(f'Actualizando stock para producto {product_id}')
-        result = use_case.execute(product_id=str(product_id), new_stock=request.stock_level)
-        return UpdateStockResponseModelModel(product_id=result.id, stock_level=result.stock)
-    except ProductNotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except DomainError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.exception(f'Error inesperado actualizando stock: {e}')
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='Error interno')
-
-
-from uuid import UUID
-from fastapi import Header
-from core.use_cases.create_product import CreateProduct
-from core.use_cases.get_inventory_report import GetInventoryReport
-from infrastructure.in_memory_tenant_repository import InMemoryTenantRepository
-from infrastructure.in_memory_product_repository import InMemoryProductRepository
+class UpdateStockResponseModel(BaseModel):
+    product_id: str
+    stock_level: int
 
 class CreateProductRequest(BaseModel):
     name: str
@@ -94,11 +28,24 @@ class CreateProductRequest(BaseModel):
     stock: int = 0
     category: str
 
+def get_update_stock_use_case() -> UpdateStock:
+    return UpdateStock(product_repository=InMemoryProductRepository.get_instance())
+
 def get_create_use_case() -> CreateProduct:
     return CreateProduct(product_repository=InMemoryProductRepository.get_instance(), tenant_repository=InMemoryTenantRepository.get_instance())
 
 def get_report_use_case() -> GetInventoryReport:
     return GetInventoryReport(product_repository=InMemoryProductRepository.get_instance(), tenant_repository=InMemoryTenantRepository.get_instance())
+
+@router.put('/{product_id}/stock', status_code=status.HTTP_200_OK, summary='Actualizar stock de un producto')
+async def update_product_stock(product_id: str, request: UpdateStockRequestModel, use_case: UpdateStock = Depends(get_update_stock_use_case)) -> UpdateStockResponseModel:
+    try:
+        result = await use_case.execute(product_id=product_id, new_stock=request.stock_level)
+        return UpdateStockResponseModel(product_id=result.id, stock_level=result.stock)
+    except ProductNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DomainError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post('/', status_code=status.HTTP_201_CREATED, summary='Crear producto')
 async def create_product(request: CreateProductRequest, tenant_id: str = Header(..., alias='X-Tenant-ID'), use_case: CreateProduct = Depends(get_create_use_case)):
