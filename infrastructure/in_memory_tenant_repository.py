@@ -35,6 +35,14 @@ class InMemoryTenantRepository(TenantRepository):
     persistencia de datos entre ejecuciones de la aplicación.
     """
 
+
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
     def __init__(self) -> None:
         """
         Inicializa el repositorio en memoria con un diccionario vacío.
