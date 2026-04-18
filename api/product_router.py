@@ -65,4 +65,17 @@ def get_update_stock_use_case() -> UpdateStockUseCase:
 )
 def update_product_stock(
     product_id: ProductId,
-    request
+    request: UpdateStockRequestModel,
+    use_case: UpdateStockUseCase = Depends(get_update_stock_use_case)
+) -> UpdateStockResponseModel:
+    try:
+        logger.info(f'Actualizando stock para producto {product_id}')
+        result = use_case.execute(product_id=str(product_id), new_stock=request.stock_level)
+        return UpdateStockResponseModel(product_id=result.id, stock_level=result.stock)
+    except ProductNotFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception(f'Error inesperado actualizando stock: {e}')
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='Error interno')
