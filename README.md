@@ -1,5 +1,3 @@
-Tienes razón. En texto plano sin formato markdown:
-
 inventory-multitenant-fastapi
 
 REST API for multi-tenant inventory management with stock tracking, built with FastAPI and deployed on Google Cloud Run.
