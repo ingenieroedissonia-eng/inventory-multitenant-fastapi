@@ -15,10 +15,10 @@ async def lifespan(app: FastAPI):
     tenant_repo = InMemoryTenantRepository.get_instance()
     product_repo = InMemoryProductRepository.get_instance()
 
-    t1 = Tenant(id='tenant-1', name='Acme Corp', plan='pro')
-    t2 = Tenant(id='tenant-2', name='Globex Inc', plan='enterprise')
-    tenant_repo.save(t1)
-    tenant_repo.save(t2)
+    t1 = Tenant(id='tenant-1', name='Acme Corp', plan='premium')
+    t2 = Tenant(id='tenant-2', name='Globex Inc', plan='premium')
+    await tenant_repo.save(t1)
+    await tenant_repo.save(t2)
 
     p1 = Product(id='prod-1', tenant_id='tenant-1', name='Laptop', sku='LAP001', price=999.99, stock=10, category='electronics')
     p2 = Product(id='prod-2', tenant_id='tenant-1', name='Mouse', sku='MOU001', price=29.99, stock=50, category='electronics')
@@ -27,12 +27,12 @@ async def lifespan(app: FastAPI):
     p5 = Product(id='prod-5', tenant_id='tenant-2', name='Chair', sku='CHR001', price=199.99, stock=15, category='furniture')
     p6 = Product(id='prod-6', tenant_id='tenant-2', name='Monitor', sku='MON001', price=399.99, stock=3, category='electronics')
 
-    product_repo.save(p1)
-    product_repo.save(p2)
-    product_repo.save(p3)
-    product_repo.save(p4)
-    product_repo.save(p5)
-    product_repo.save(p6)
+    await product_repo.save(p1)
+    await product_repo.save(p2)
+    await product_repo.save(p3)
+    await product_repo.save(p4)
+    await product_repo.save(p5)
+    await product_repo.save(p6)
 
     logger.info('Mock data loaded: 2 tenants, 6 products')
     yield
