@@ -78,3 +78,49 @@ def update_product_stock(
     except Exception as e:
         logger.exception(f'Error inesperado actualizando stock: {e}')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='Error interno')
+
+
+from uuid import UUID
+from fastapi import Header
+from core.use_cases.create_product import CreateProduct
+from core.use_cases.get_inventory_report import GetInventoryReport
+from infrastructure.in_memory_tenant_repository import InMemoryTenantRepository
+from infrastructure.in_memory_product_repository import InMemoryProductRepository
+
+class CreateProductRequest(BaseModel):
+    name: str
+    sku: str
+    price: float
+    stock: int = 0
+    category: str
+
+def get_create_use_case() -> CreateProduct:
+    return CreateProduct(product_repository=InMemoryProductRepository.get_instance(), tenant_repository=InMemoryTenantRepository.get_instance())
+
+def get_report_use_case() -> GetInventoryReport:
+    return GetInventoryReport(product_repository=InMemoryProductRepository.get_instance(), tenant_repository=InMemoryTenantRepository.get_instance())
+
+@router.post('/', status_code=status.HTTP_201_CREATED, summary='Crear producto')
+async def create_product(request: CreateProductRequest, tenant_id: str = Header(..., alias='X-Tenant-ID'), use_case: CreateProduct = Depends(get_create_use_case)):
+    try:
+        product = await use_case.execute(tenant_id=tenant_id, name=request.name, sku=request.sku, price=request.price, stock=request.stock, category=request.category)
+        return product
+    except TenantNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DomainError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get('/', summary='Listar productos')
+async def get_products(tenant_id: str = Header(..., alias='X-Tenant-ID')):
+    products = await InMemoryProductRepository.get_instance().list_by_tenant(tenant_id)
+    return products
+
+@router.get('/reports/inventory', summary='Reporte inventario')
+async def get_inventory_report(tenant_id: str = Header(..., alias='X-Tenant-ID'), threshold: int = 10, use_case: GetInventoryReport = Depends(get_report_use_case)):
+    try:
+        products = await use_case.execute(tenant_id=tenant_id, low_stock_threshold=threshold)
+        return products
+    except TenantNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DomainError as e:
+        raise HTTPException(status_code=400, detail=str(e))
