@@ -1,4 +1,3 @@
-```
 # inventory-multitenant-fastapi
 
 REST API for multi-tenant inventory management with stock tracking, built with FastAPI and deployed on Google Cloud Run.
@@ -28,25 +27,6 @@ Swagger UI: https://inventory-multitenant-api-247946064488.us-central1.run.app/d
 - Google Cloud Run
 - Clean Architecture
 
-## Usage
-
-Create a product:
-
-```bash
-curl -X POST https://inventory-multitenant-api-247946064488.us-central1.run.app/api/v1/products \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-ID: tenant-1" \
-  -d '{"name": "Laptop", "sku": "LAP001", "price": 999.99, "stock": 10, "category": "electronics"}'
-```
-
-Get inventory report:
-
-```bash
-curl https://inventory-multitenant-api-247946064488.us-central1.run.app/api/v1/reports/inventory \
-  -H "X-Tenant-ID: tenant-1"
-```
-
 ---
 
 Built by Edisson A.G.C. — AI Engineering Applied to Commerce — Bogotá, Colombia
-```
